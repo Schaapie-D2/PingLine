@@ -8,12 +8,13 @@ internal static class NotificationManager
     public static List<IPingLineNotifier> Notifiers = new();
     public static List<(Notification notification, IPingLineNotifier notifier)> History = new();
 
-    static readonly string SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PingLine", "pingline.cfg");
+    private static readonly string SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PingLine", "pingline.cfg");
 
-    static Dictionary<string, string> GoToLinkDict = new();
-    static string? GoToLink = null;
+    private static Dictionary<string, string> goToLinkDict = new();
+    private static List<AnimatedImageInstance> animatedImages = new();
+    private static string? goToLink = null;
 
-    static DateTime currentDate = DateTime.MinValue;
+    private static DateTime currentDate = DateTime.MinValue;
 
     public static void NewPingLine(string notifierType, string notifierID)
     {
@@ -38,7 +39,7 @@ internal static class NotificationManager
         }
 
         Notifiers.Add(newNotifier);
-        ProcessNotifiers();
+        ProcessNotifiers().GetAwaiter().GetResult();
     }
 
     public static void DeletePingLine(string notifID)
@@ -50,7 +51,7 @@ internal static class NotificationManager
         }
     }
 
-    public static async void ProcessNotifiers()
+    public static async Task ProcessNotifiers()
     {
         List<(Notification notification, IPingLineNotifier notifier)> entrys = new();
 
@@ -66,15 +67,15 @@ internal static class NotificationManager
 
         foreach(var entry in entrys)
         {
-            await ProcessNotification(entry.notification, entry.notifier, true);
+            await processNotification(entry.notification, entry.notifier, true);
         }
     }
 
-    private static async Task ProcessNotification(Notification notification, IPingLineNotifier notifier, bool addToHistory)
+    private static async Task processNotification(Notification notification, IPingLineNotifier notifier, bool addToHistory)
     {
         if(currentDate != notification.Time.Date)
         {
-            Console.WriteLine($"================= {notification.Time:dd/MM/yyyy} =================");
+            TerminalConsole.WriteLine($"================= {notification.Time:dd/MM/yyyy} =================");
             currentDate = notification.Time.Date;
         }
 
@@ -86,44 +87,93 @@ internal static class NotificationManager
 
         if (notification.GoToLink != null)
         {
-            GoToLink = notification.GoToLink;
-            GoToLinkDict[notifier.id] = notification.GoToLink;
+            goToLink = notification.GoToLink;
+            goToLinkDict[notifier.id] = notification.GoToLink;
         }
 
-        Console.WriteLine(text);
+        TerminalConsole.WriteLine(text);
         if(notification.ImageSourceURL != null)
         {
             var art = await AsciiArtGenerator.GenerateFromUrl(notification.ImageSourceURL, notification.ImageHeight ?? 30);
-            WriteImage(art, notifier);
+
+            int imageStartLine = TerminalConsole.GetBufferCursorPosition().Top;
+            writeImage(art.Frames[0], notifier);
+
+            if (art.Frames.Length > 1)
+            {
+                animatedImages.Add(new AnimatedImageInstance()
+                {
+                    Image = art,
+                    Notifier = notifier,
+                    CurrentFrame = 0,
+                    TimeUntilNextFrame = art.FrameTimings[0],
+                    ConsoleLine = imageStartLine
+                });
+            }
         }
 
         Console.ForegroundColor = ConsoleColor.White;
     }
 
-    private static void WriteImage(string[] asciiArtLines, IPingLineNotifier notifier)
+    private static void writeImage(AsciiArtImageFrame asciiArt, IPingLineNotifier notifier, int startRow = 0)
     {
         Console.ForegroundColor = notifier.TextColor;
 
-        foreach (var line in asciiArtLines)
+        for (int i = startRow; i < asciiArt.FrameRows.Length; i++)
         {
+            var line = asciiArt.FrameRows[i];
             Console.ForegroundColor = notifier.TextColor;
-            Console.Write("\x1b[?7l"); // Disable line wrapping
-            Console.Write("      | ");
-            Console.WriteLine(line);
-            Console.Write("\x1b[?7h"); // Enable line wrapping
+            TerminalConsole.Write("\x1b[?7l"); // Disable line wrapping
+            TerminalConsole.Write("      | ");
+            TerminalConsole.WriteLine(line);
+            TerminalConsole.Write("\x1b[?7h"); // Enable line wrapping
         }
 
         Console.ForegroundColor = ConsoleColor.White;
     }
 
+    public static void UpdateAnimatedImageFrames(float deltaTime)
+    {
+        var current = Console.GetCursorPosition();
+        Console.CursorVisible = false;
+
+        for (int i = 0; i < animatedImages.Count; i++)
+        {
+            var image = animatedImages[i];
+
+            image.TimeUntilNextFrame -= deltaTime;
+            if (image.TimeUntilNextFrame > 0)
+                continue;
+
+            while (image.TimeUntilNextFrame <= 0)
+            {
+                image.CurrentFrame = (image.CurrentFrame + 1) % image.Image.Frames.Length;
+                image.TimeUntilNextFrame += image.Image.FrameTimings[image.CurrentFrame];
+            }
+            
+            var overshoot = TerminalConsole.SetBufferCursorPosition(0, image.ConsoleLine - 1);
+            var startRow = Math.Max(0, -overshoot);
+
+            using (TerminalConsole.BeginOverwrite())
+            {
+                writeImage(image.Image.Frames[image.CurrentFrame], image.Notifier, startRow);
+            }
+        }
+
+        Console.SetCursorPosition(current.Left, current.Top);
+        Console.CursorVisible = true;
+    }
+
+
     public static async void RewriteNotificationLines()
     {
-        Console.Clear();
+        TerminalConsole.Clear();
         currentDate = DateTime.MinValue;
         History = History.OrderBy(n => n.notification.Time).ToList();
+        animatedImages.Clear();
         foreach (var entry in History)
         {
-            await ProcessNotification(entry.notification, entry.notifier, false);
+            await processNotification(entry.notification, entry.notifier, false);
         }
     }
 
@@ -167,7 +217,7 @@ internal static class NotificationManager
 
                 default:
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to load a ping from save file: Unknown ping type: {notifierName}");
+                    TerminalConsole.WriteLine($"Failed to load a ping from save file: Unknown ping type: {notifierName}");
                     Console.ForegroundColor = ConsoleColor.White;
                     break;
             }
@@ -178,10 +228,10 @@ internal static class NotificationManager
     {
         string? link;
 
-        if (!string.IsNullOrEmpty(notifID) && GoToLinkDict.TryGetValue(notifID, out var foundLink))
+        if (!string.IsNullOrEmpty(notifID) && goToLinkDict.TryGetValue(notifID, out var foundLink))
             link = foundLink;
         else
-            link = GoToLink;
+            link = goToLink;
 
         if (string.IsNullOrEmpty(link)) return;
 
@@ -204,6 +254,15 @@ internal static class NotificationManager
                 UseShellExecute = false
             });
         }
+    }
+
+    private class AnimatedImageInstance
+    {
+        public AsciiArtImage Image { get; set; }
+        public IPingLineNotifier Notifier { get; set; } = null!;
+        public int CurrentFrame { get; set; }
+        public float TimeUntilNextFrame { get; set; }
+        public int ConsoleLine { get; set; }
     }
 }
 

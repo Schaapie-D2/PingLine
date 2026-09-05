@@ -1,11 +1,10 @@
-using System.Xml.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNBluesky : IPingLineNotifier
+internal sealed class PLNBluesky : IPingLineNotifier
 {
     public const string Name = "bluesky";
     public const string TypeName = Name;
@@ -23,11 +22,12 @@ internal class PLNBluesky : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
         while (true)
         {
-            Console.Write("Account handle: ");
+            TerminalConsole.Write("Account handle: ");
             var handle = Console.ReadLine();
             if(string.IsNullOrEmpty(handle)) continue;
 
@@ -40,7 +40,7 @@ internal class PLNBluesky : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -48,7 +48,7 @@ internal class PLNBluesky : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

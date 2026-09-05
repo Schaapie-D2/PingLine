@@ -1,51 +1,87 @@
 ﻿using PingLine.Notification;
+using System.Diagnostics;
 using System.Text;
 
 namespace PingLine;
 
 internal class Program
 {
-    static bool stopApp = false;
+    private static bool stopApp = false;
 
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         Console.Title = "PingLine";
 
         Console.ForegroundColor = ConsoleColor.White;
-        Console.Write("Hello! Welcome to ");
+        TerminalConsole.Write("Hello! Welcome to ");
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.Write("PingLine");
+        TerminalConsole.Write("PingLine");
         Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("!\nUse the help command to start configurating!\n");
+        TerminalConsole.WriteLine("!\nUse the help command to start configurating!\n");
 
         NotificationManager.Load();
 
         AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
         {
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("Saving...");
+            TerminalConsole.WriteLine("Saving...");
             NotificationManager.Save();
         };
 
-        Task.Run(async () =>
-        {
-            while (!stopApp)
-            {
-                NotificationManager.ProcessNotifiers();
-
-                await Task.Delay(TimeSpan.FromMinutes(1));
-            }
-        });
+        StringBuilder inputBuffer = new StringBuilder();
+        var stopwatch = Stopwatch.StartNew();
+        float lastTime = 0;
+        int processCounter = 100 * 60;
 
         while (!stopApp)
         {
-            ExecuteCommand(Console.ReadLine() ?? "");
+            float currentTime = (float)stopwatch.Elapsed.TotalSeconds;
+            float deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            if (processCounter == 100 * 60)
+            {
+                NotificationManager.ProcessNotifiers().GetAwaiter().GetResult();
+                processCounter = 0;
+            }
+
+            NotificationManager.UpdateAnimatedImageFrames(deltaTime);
+
+            while (Console.KeyAvailable)
+            {
+                ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    string command = inputBuffer.ToString();
+                    inputBuffer.Clear();
+
+                    Console.SetCursorPosition(0, Console.GetCursorPosition().Top);
+                    executeCommand(command);
+                }
+                else if (keyInfo.Key == ConsoleKey.Backspace)
+                {
+                    if (inputBuffer.Length > 0)
+                    {
+                        inputBuffer.Remove(inputBuffer.Length - 1, 1);
+                        TerminalConsole.Write("\b \b");
+                    }
+                }
+                else if (keyInfo.KeyChar != '\u0000')
+                {
+                    inputBuffer.Append(keyInfo.KeyChar);
+                    TerminalConsole.Write($"{keyInfo.KeyChar}");
+                }
+            }
+
+            Thread.Sleep(10);
+            processCounter++;
         }
     }
 
-    static void ExecuteCommand(string input)
+    private static void executeCommand(string input)
     {
-        var res = ParseArgs(input);
+        var res = parseArgs(input);
         var command = res.command.ToLower();
         var args = res.args;
         bool skipRewrite = false;
@@ -55,7 +91,7 @@ internal class Program
             if (args.Count >= len) return false;
 
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Invalid args. command needs atleast {len} args");
+            TerminalConsole.WriteLine($"Invalid args. command needs atleast {len} args");
             Console.ForegroundColor = ConsoleColor.White;
             skipRewrite = true;
             return true;
@@ -64,11 +100,11 @@ internal class Program
         switch (command)
         {
             case "help":
-                Help();
+                help();
                 skipRewrite = true;
                 break;
             case "clear":
-                Console.Clear();
+                TerminalConsole.Clear();
                 skipRewrite = true;
                 break;
             case "rewrite":
@@ -91,11 +127,11 @@ internal class Program
                 break;
             case "lspingid":
                 foreach (var n in NotificationManager.Notifiers)
-                    Console.WriteLine($"{n.GetTypeName()}:{n.id}");
+                    TerminalConsole.WriteLine($"{n.GetTypeName()}:{n.id}");
                 skipRewrite = true;
                 break;
             case "lspingtype":
-                ListPingTypes();
+                listPingTypes();
                 skipRewrite = true;
                 break;
             case "go":
@@ -107,7 +143,7 @@ internal class Program
 
             default:
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Command not found");
+                TerminalConsole.WriteLine("Command not found");
                 Console.ForegroundColor = ConsoleColor.White;
                 skipRewrite = true;
                 break;
@@ -116,7 +152,7 @@ internal class Program
         if (!skipRewrite) NotificationManager.RewriteNotificationLines();
     }
 
-    static (string command, List<string> args) ParseArgs(string input)
+    private static (string command, List<string> args) parseArgs(string input)
     {
         var args = new List<string>();
         var current = new StringBuilder();
@@ -155,45 +191,45 @@ internal class Program
         return (command, args);
     }
 
-    static void Help()
+    private static void help()
     {
-        Console.WriteLine("Notation: <required> | [optional]");
-        Console.WriteLine();
-        Console.WriteLine("GENERAL COMMANDS");
-        Console.WriteLine("help                           - Show this help menu");
-        Console.WriteLine("clear                          - Clear the console");
-        Console.WriteLine("rewrite                        - Clear screen and redraw all notification lines");
-        Console.WriteLine("save                           - Save the configuration");
-        Console.WriteLine("exit                           - Close the application");
-        Console.WriteLine();
-        Console.WriteLine("PING MANAGEMENT");
-        Console.WriteLine("newping <type> <id>            - Create a new ping");
-        Console.WriteLine("  Example: newping youtube NewYoutubePing");
-        Console.WriteLine("           newping time NewTimePing");
-        Console.WriteLine();
-        Console.WriteLine("delping <id>                   - Delete a ping");
-        Console.WriteLine("  Example: delping UC123456");
-        Console.WriteLine();
-        Console.WriteLine("lspingid                       - List all ping IDs");
-        Console.WriteLine("lspingtype                     - List all ping types");
-        Console.WriteLine("go [id]                        - Open the ping link");
-        Console.WriteLine("  Example: go UC123456");
-        Console.WriteLine("           go");
-        Console.WriteLine();
-        ListPingTypes();
+        TerminalConsole.WriteLine("Notation: <required> | [optional]");
+        TerminalConsole.WriteLine();
+        TerminalConsole.WriteLine("GENERAL COMMANDS");
+        TerminalConsole.WriteLine("help                           - Show this help menu");
+        TerminalConsole.WriteLine("clear                          - Clear the console");
+        TerminalConsole.WriteLine("rewrite                        - Clear screen and redraw all notification lines");
+        TerminalConsole.WriteLine("save                           - Save the configuration");
+        TerminalConsole.WriteLine("exit                           - Close the application");
+        TerminalConsole.WriteLine();
+        TerminalConsole.WriteLine("PING MANAGEMENT");
+        TerminalConsole.WriteLine("newping <type> <id>            - Create a new ping");
+        TerminalConsole.WriteLine("  Example: newping youtube NewYoutubePing");
+        TerminalConsole.WriteLine("           newping time NewTimePing");
+        TerminalConsole.WriteLine();
+        TerminalConsole.WriteLine("delping <id>                   - Delete a ping");
+        TerminalConsole.WriteLine("  Example: delping UC123456");
+        TerminalConsole.WriteLine();
+        TerminalConsole.WriteLine("lspingid                       - List all ping IDs");
+        TerminalConsole.WriteLine("lspingtype                     - List all ping types");
+        TerminalConsole.WriteLine("go [id]                        - Open the ping link");
+        TerminalConsole.WriteLine("  Example: go UC123456");
+        TerminalConsole.WriteLine("           go");
+        TerminalConsole.WriteLine();
+        listPingTypes();
     }
 
-    static void ListPingTypes()
+    private static void listPingTypes()
     {
-        Console.WriteLine("Available Ping Types:");
-        Console.WriteLine("- Youtube  (youtube)");
-        Console.WriteLine("- Twitter  (twitter)");
-        Console.WriteLine("- Bluesky  (bluesky)");
-        Console.WriteLine("- Tumblr   (tumblr)");
-        Console.WriteLine("- RSS 1.0  (rss1)");
-        Console.WriteLine("- RSS 2.0  (rss2)");
-        Console.WriteLine("- Atom 1.0 (atom1)");
-        Console.WriteLine("- Time     (time)");
-        Console.WriteLine("- Timer    (timer)");
+        TerminalConsole.WriteLine("Available Ping Types:");
+        TerminalConsole.WriteLine("- Youtube  (youtube)");
+        TerminalConsole.WriteLine("- Twitter  (twitter)");
+        TerminalConsole.WriteLine("- Bluesky  (bluesky)");
+        TerminalConsole.WriteLine("- Tumblr   (tumblr)");
+        TerminalConsole.WriteLine("- RSS 1.0  (rss1)");
+        TerminalConsole.WriteLine("- RSS 2.0  (rss2)");
+        TerminalConsole.WriteLine("- Atom 1.0 (atom1)");
+        TerminalConsole.WriteLine("- Time     (time)");
+        TerminalConsole.WriteLine("- Timer    (timer)");
     }
 }

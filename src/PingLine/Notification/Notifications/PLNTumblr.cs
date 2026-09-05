@@ -1,10 +1,9 @@
-﻿using System.Xml.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNTumblr : IPingLineNotifier
+internal sealed class PLNTumblr : IPingLineNotifier
 {
     public const string Name = "tumblr";
     public const string TypeName = Name;
@@ -22,11 +21,12 @@ internal class PLNTumblr : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
         while (true)
         {
-            Console.Write("Blog handle: ");
+            TerminalConsole.Write("Blog handle: ");
             var handle = Console.ReadLine();
             if(string.IsNullOrEmpty(handle)) continue;
 
@@ -39,7 +39,7 @@ internal class PLNTumblr : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -47,7 +47,7 @@ internal class PLNTumblr : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

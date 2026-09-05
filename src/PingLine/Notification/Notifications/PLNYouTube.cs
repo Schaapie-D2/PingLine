@@ -3,7 +3,7 @@ using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNYoutube : IPingLineNotifier
+internal sealed class PLNYoutube : IPingLineNotifier
 {
     public const string Name = "youtube";
     public const string TypeName = Name;
@@ -23,13 +23,14 @@ internal class PLNYoutube : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
-        Console.WriteLine("Channel ids look like UCcbrIFo2wZPvXPxJ1BCS5lQ");
+        TerminalConsole.WriteLine("Channel ids look like UCcbrIFo2wZPvXPxJ1BCS5lQ");
 
         while (true)
         {
-            Console.Write("Channel id: ");
+            TerminalConsole.Write("Channel id: ");
             var cID = Console.ReadLine();
             if(string.IsNullOrEmpty(cID)) continue;
 
@@ -41,7 +42,7 @@ internal class PLNYoutube : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -49,7 +50,7 @@ internal class PLNYoutube : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

@@ -1,10 +1,9 @@
-using System.Xml.Linq;
 using System.Text.RegularExpressions;
 using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNTwitter : IPingLineNotifier
+internal sealed class PLNTwitter : IPingLineNotifier
 {
     public const string Name = "twitter";
     public const string TypeName = Name;
@@ -22,29 +21,30 @@ internal class PLNTwitter : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
-        Console.WriteLine("Pingline does not have access to the Twitter/X api. So we need to use RSS.");
-        Console.WriteLine("Write {account} where the account handle should go like @example.");
-        Console.WriteLine("Examples: https://nitter.net/{account}/rss");
+        TerminalConsole.WriteLine("Pingline does not have access to the Twitter/X api. So we need to use RSS.");
+        TerminalConsole.WriteLine("Write {account} where the account handle should go like @example.");
+        TerminalConsole.WriteLine("Examples: https://nitter.net/{account}/rss");
 
         while (true)
         {
-            Console.Write("RSS provider  : ");
+            TerminalConsole.Write("RSS provider  : ");
             var rss = Console.ReadLine();
             if(string.IsNullOrEmpty(rss)) continue;
 
             if (!rss.StartsWith("https://") && !rss.StartsWith("http://"))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Please start the url with https:// or http://.");
+                TerminalConsole.WriteLine("Please start the url with https:// or http://.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }
             if (!rss.Contains("{account}"))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Please write {account} where the account handle should go.");
+                TerminalConsole.WriteLine("Please write {account} where the account handle should go.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }
@@ -52,7 +52,7 @@ internal class PLNTwitter : IPingLineNotifier
             string? handle;
             while (true)
             {
-                Console.Write("Account handle: ");
+                TerminalConsole.Write("Account handle: ");
                 handle = Console.ReadLine();
                 if(string.IsNullOrEmpty(handle)) continue;
                 break;
@@ -67,7 +67,7 @@ internal class PLNTwitter : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {rss}. Please use a different provider or check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {rss}. Please use a different provider or check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -75,7 +75,7 @@ internal class PLNTwitter : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {rss}. Please use a different provider or check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {rss}. Please use a different provider or check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

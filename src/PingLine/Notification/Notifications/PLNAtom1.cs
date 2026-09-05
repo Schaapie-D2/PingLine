@@ -1,11 +1,9 @@
-using System;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNAtom1 : IPingLineNotifier
+internal sealed class PLNAtom1 : IPingLineNotifier
 {
     public string Name => parser.FeedTitle;
     public const string TypeName = "atom1";
@@ -21,13 +19,14 @@ internal class PLNAtom1 : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
         var client = new HttpClient();
 
         while (true)
         {
-            Console.Write("Atom url: ");
+            TerminalConsole.Write("Atom url: ");
             var url = Console.ReadLine();
             if(string.IsNullOrEmpty(url)) continue;
 
@@ -39,7 +38,7 @@ internal class PLNAtom1 : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -47,7 +46,7 @@ internal class PLNAtom1 : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {atomUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

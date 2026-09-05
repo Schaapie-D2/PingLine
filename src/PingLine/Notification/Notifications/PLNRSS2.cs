@@ -1,11 +1,9 @@
-using System;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNRSS2 : IPingLineNotifier
+internal sealed class PLNRSS2 : IPingLineNotifier
 {
     public string Name => parser.ChannelTitle;
     public const string TypeName = "rss2";
@@ -21,13 +19,14 @@ internal class PLNRSS2 : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
         var client = new HttpClient();
 
         while (true)
         {
-            Console.Write("RSS url: ");
+            TerminalConsole.Write("RSS url: ");
             var url = Console.ReadLine();
             if(string.IsNullOrEmpty(url)) continue;
 
@@ -39,7 +38,7 @@ internal class PLNRSS2 : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -47,7 +46,7 @@ internal class PLNRSS2 : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

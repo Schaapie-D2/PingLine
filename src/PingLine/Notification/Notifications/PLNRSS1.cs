@@ -4,7 +4,7 @@ using PingLine.Parsers;
 
 namespace PingLine.Notification.Notifications;
 
-internal class PLNRSS1 : IPingLineNotifier
+internal sealed class PLNRSS1 : IPingLineNotifier
 {
     public string Name => parser.ChannelTitle;
     public const string TypeName = "rss1";
@@ -20,13 +20,14 @@ internal class PLNRSS1 : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
         var client = new HttpClient();
 
         while (true)
         {
-            Console.Write("RSS url: ");
+            TerminalConsole.Write("RSS url: ");
             var url = Console.ReadLine();
             if(string.IsNullOrEmpty(url)) continue;
 
@@ -38,7 +39,7 @@ internal class PLNRSS1 : IPingLineNotifier
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                    TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                     Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
@@ -46,7 +47,7 @@ internal class PLNRSS1 : IPingLineNotifier
             catch
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
+                TerminalConsole.WriteLine($"Failed to data from {rssUrl}. Please check for typos.");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }

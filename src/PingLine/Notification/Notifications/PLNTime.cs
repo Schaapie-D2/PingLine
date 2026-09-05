@@ -1,6 +1,6 @@
 ﻿namespace PingLine.Notification.Notifications;
 
-internal class PLNTime : IPingLineNotifier
+internal sealed class PLNTime : IPingLineNotifier
 {
     public const string Name = "time";
     public const string TypeName = Name;
@@ -16,13 +16,14 @@ internal class PLNTime : IPingLineNotifier
     {
         this.id = id;
 
-        if(!askArgs) return;
+        if(!askArgs)
+            return;
 
-        Console.WriteLine("The time must be formated like this: hh:mm or hh:mm:ss.");
+        TerminalConsole.WriteLine("The time must be formated like this: hh:mm or hh:mm:ss.");
 
         while (true)
         {
-            Console.Write("Trigger time: ");
+            TerminalConsole.Write("Trigger time: ");
             var time = Console.ReadLine();
             if(string.IsNullOrEmpty(time)) continue;
 
@@ -34,14 +35,14 @@ internal class PLNTime : IPingLineNotifier
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Time needs to be in this format: hh:mm or hh:mm:ss");
+                TerminalConsole.WriteLine("Time needs to be in this format: hh:mm or hh:mm:ss");
                 Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }
 
             while (true)
             {
-                Console.Write("Text        : ");
+                TerminalConsole.Write("Text        : ");
                 var text = Console.ReadLine();
                 if(string.IsNullOrEmpty(text)) continue;
                 TimeText = text;
@@ -95,7 +96,7 @@ internal class PLNTime : IPingLineNotifier
         else
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Could not load notifier of type time with ID: {notifID}. Set trigger time to 12:00");
+            TerminalConsole.WriteLine($"Could not load notifier of type time with ID: {notifID}. Set trigger time to 12:00");
             Console.ForegroundColor = ConsoleColor.White;
             saved.TriggerTime = new TimeSpan(12, 00, 00);
         }
